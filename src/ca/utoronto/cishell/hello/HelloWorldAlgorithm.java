@@ -21,7 +21,6 @@ import org.cishell.framework.algorithm.AlgorithmExecutionException;
 import org.cishell.framework.data.BasicData;
 import org.cishell.framework.data.Data;
 import org.cishell.framework.data.DataProperty;
-import org.cishell.service.guibuilder.GUIBuilderService;
 import org.genemania.domain.AttributeGroup;
 import org.genemania.domain.Interaction;
 import org.genemania.domain.InteractionNetwork;
@@ -45,7 +44,6 @@ import org.genemania.plugin.controllers.IGeneProvider;
 import org.genemania.plugin.cytoscape.NullCytoscapeUtils;
 import org.genemania.plugin.data.DataSet;
 import org.genemania.plugin.data.DataSetManager;
-import org.genemania.plugin.data.IMediatorProvider;
 import org.genemania.plugin.data.lucene.LuceneDataSetFactory;
 import org.genemania.plugin.model.Group;
 import org.genemania.plugin.model.Network;
@@ -62,32 +60,28 @@ import edu.uci.ics.jung.graph.Vertex;
 import edu.uci.ics.jung.graph.impl.UndirectedSparseEdge;
 import edu.uci.ics.jung.graph.impl.UndirectedSparseGraph;
 import edu.uci.ics.jung.graph.impl.UndirectedSparseVertex;
+import edu.uci.ics.jung.utils.UserData;
 
 public class HelloWorldAlgorithm implements Algorithm {
-    private Dictionary parameters;
-    private CIShellContext ciShellContext;
+    private Dictionary<?, ?> parameters;
 	private LogService logger;
     
     public HelloWorldAlgorithm(Data[] data,
-    				  Dictionary parameters,
+    				  Dictionary<?, ?> parameters,
     				  CIShellContext ciShellContext) {
         this.parameters = parameters;
-        this.ciShellContext = ciShellContext;
         
         logger = (LogService) ciShellContext.getService(LogService.class.getName());
     }
 
     public Data[] execute() throws AlgorithmExecutionException {
     	try {
-	    	String name = (String) parameters.get("name");
-	    	logger.log(LogService.LOG_INFO, "Hello, " + name);
+	    	String geneList = (String) parameters.get("geneList");
 	    	
-	    	GUIBuilderService guiBuilder = (GUIBuilderService) ciShellContext.getService(GUIBuilderService.class.getName());
 	    	DataSetManager dataSetManager = createDataSetManager();
 	    	DataSet data = dataSetManager.open(new File("/Users/jay/genemania_plugin/gmdata-2012-08-02-core"));
-	    	IMediatorProvider mediatorProvider = data.getMediatorProvider();
 	    	
-	    	Query query = createQuery(data, parameters);
+	    	Query query = createQuery(geneList, data, parameters);
 			NetworkUtils networkUtils = new NetworkUtils();
 			SearchResult result = runAlgorithm(data, networkUtils, query);
 	    	IGeneProvider geneProvider = new DefaultGeneProvider(networkUtils);
@@ -104,10 +98,19 @@ public class HelloWorldAlgorithm implements Algorithm {
 		}
     }
     
-    private Query createQuery(DataSet data, Dictionary parameters) throws DataStoreException, IOException {
+    private Query createQuery(String geneList, DataSet data, Dictionary parameters) throws DataStoreException, IOException {
+    	boolean first = true;
+    	StringBuilder builder = new StringBuilder();
+    	for (String name : geneList.split("\\s")) {
+    		if (first) {
+    			first = false;
+    		} else {
+    			builder.append("\t");
+    		}
+    		builder.append(name.trim());
+    	}
     	TabDelimitedQueryParser parser = new TabDelimitedQueryParser();
-    	String geneList = "BRCA1";
-    	String queryText = "9606\n" + geneList + "\ndefault\n20\nbp";
+    	String queryText = "9606\n" + builder.toString() + "\ndefault\n20\nbp";
 		Reader reader = new StringReader(queryText);
 		return parser.parse(data, reader, new IQueryErrorHandler() {
 			@Override
@@ -153,6 +156,10 @@ public class HelloWorldAlgorithm implements Algorithm {
 					Vertex to = getVertex(vertexCache, toNode, graph, geneProvider);
 					
 			    	UndirectedSparseEdge edge = new UndirectedSparseEdge(from, to);
+			    	edge.removeUserDatum("labelvisible");
+			    	edge.removeUserDatum("label");
+			    	edge.setUserDatum("labelvisible", "false", UserData.CLONE);
+			    	edge.setUserDatum("weight", interaction.getWeight(), UserData.CLONE);
 			    	graph.addEdge(edge);
 				}
 			}
@@ -166,7 +173,7 @@ public class HelloWorldAlgorithm implements Algorithm {
 			return vertex;
 		}
 		vertex = new UndirectedSparseVertex();
-		vertex.
+		vertex.setUserDatum("label", geneProvider.getGene(node).getSymbol(), UserData.CLONE);
 		graph.addVertex(vertex);
 		vertexCache.put(node.getId(), vertex);
 		return vertex;
@@ -176,7 +183,6 @@ public class HelloWorldAlgorithm implements Algorithm {
         Data outputData = new BasicData(outputGraph, Graph.class.getName());
  
         Dictionary metadata = outputData.getMetadata();
-//        metadata.put(DataProperty.PARENT, data[0]); // Provenance trail
         metadata.put(DataProperty.TYPE, DataProperty.NETWORK_TYPE);
         metadata.put(DataProperty.LABEL, label);
  

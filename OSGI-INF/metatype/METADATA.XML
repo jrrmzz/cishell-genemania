@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <metatype:MetaData xmlns:metatype="http://www.osgi.org/xmlns/metatype/v1.0.0">
 	<OCD name="My Algorithm" id="ca.utoronto.cishell.hello.HelloWorldAlgorithm.OCD"
-		 description="Prints Hello World ">
-		<AD name="Name" id="name" type="String" description="Who are you?" default="Bob, from Canada"/>
+		 description="Fetches the network neighbourhood of your gene list">
+		<AD name="Seed gene list (separated by spaces)" id="geneList" type="String" description="What genes are you interested in?" default="BRCA1"/>
 	</OCD>
 	<Designate pid="ca.utoronto.cishell.hello.HelloWorldAlgorithm">
 		<Object ocdref="ca.utoronto.cishell.hello.HelloWorldAlgorithm.OCD" />
