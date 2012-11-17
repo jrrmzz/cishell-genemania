@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component name="ca.utoronto.cishell.hello.HelloWorldAlgorithm.component" immediate="false">
+	<implementation class="ca.utoronto.cishell.hello.HelloWorldAlgorithmFactory"/>
+	<properties entry="OSGI-INF/algorithm.properties"/>
+	
+	<service>
+		<provide interface=
+			"org.cishell.framework.algorithm.AlgorithmFactory"/>
+	</service>
+</component>
